@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schengen">
+<title>Schengen 90/180</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1a17;
+  --surface:#23231f;
+  --surface-2:#2c2c27;
+  --ink:#ece8e0;
+  --ink-dim:#9b968b;
+  --line:#3a3a33;
+  --ok:#7fa86b;
+  --warn:#d9a441;
+  --bad:#cf6b5a;
+  --accent:#c9a86a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--ink);font-family:'Spline Sans Mono',monospace}
+body{
+  min-height:100vh;
+  padding:max(env(safe-area-inset-top),20px) 20px calc(env(safe-area-inset-bottom) + 28px);
+  background-image:radial-gradient(circle at 50% 0%, #26261f 0%, var(--bg) 55%);
+}
+.wrap{max-width:520px;margin:0 auto}
+header{padding:14px 2px 26px}
+.kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-dim)}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:30px;line-height:1.05;margin-top:8px;letter-spacing:-.01em}
+h1 em{font-style:italic;color:var(--accent)}
+
+/* gauge */
+.gauge{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:30px 26px 26px;
+  position:relative;
+  overflow:hidden;
+}
+.gauge::after{content:"";position:absolute;inset:0;border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);pointer-events:none}
+.bignum{font-family:'Fraunces',serif;font-size:74px;font-weight:500;line-height:.9;letter-spacing:-.02em}
+.bignum .of{font-size:24px;color:var(--ink-dim);font-weight:400}
+.statusline{margin-top:14px;font-size:13px;letter-spacing:.02em;display:flex;align-items:center;gap:9px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bar{margin-top:20px;height:9px;border-radius:99px;background:var(--surface-2);overflow:hidden;display:flex}
+.bar > span{height:100%;display:block;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.meta{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px}
+.meta .lab{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim)}
+.meta .val{font-size:15px;margin-top:5px}
+.meta .val.warn{color:var(--warn)}
+.meta .val.bad{color:var(--bad)}
+.meta .val.ok{color:var(--ok)}
+
+/* reference date */
+.refrow{display:flex;align-items:center;gap:12px;margin:22px 2px 8px}
+.refrow label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);flex:none}
+.refrow input{
+  flex:1;background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  font-family:inherit;font-size:14px;padding:11px 13px;border-radius:11px;
+}
+.refrow button{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12px;cursor:pointer;padding:6px}
+
+/* trips */
+.section-h{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-dim);margin:30px 2px 12px;display:flex;justify-content:space-between;align-items:center}
+.trip{
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:14px 14px 14px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;
+}
+.trip .dates{flex:1;display:flex;flex-direction:column;gap:8px}
+.trip .field{display:flex;align-items:center;gap:10px}
+.trip .field span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);width:30px;flex:none}
+.trip input[type=date]{
+  flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  font-family:inherit;font-size:13px;padding:9px 11px;border-radius:9px;min-width:0;
+}
+.trip .days{font-size:11px;color:var(--ink-dim);min-width:54px;text-align:right}
+.trip .del{
+  background:none;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;
+  width:34px;height:34px;border-radius:9px;flex:none;line-height:1;
+}
+.trip .del:active{background:var(--surface-2);color:var(--bad)}
+.add{
+  width:100%;background:var(--surface);border:1px dashed var(--line);color:var(--ink);
+  font-family:inherit;font-size:13px;letter-spacing:.04em;padding:15px;border-radius:14px;cursor:pointer;
+  transition:border-color .2s,color .2s;
+}
+.add:active{border-color:var(--accent);color:var(--accent)}
+.empty{color:var(--ink-dim);font-size:13px;text-align:center;padding:18px 0 6px;line-height:1.7}
+
+/* future planner */
+.plan{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.plan .ph{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:12px}
+.plan .prow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.plan .prow label{font-size:12px;color:var(--ink-dim);width:74px;flex:none}
+.plan input[type=date]{flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:13px;padding:9px 11px;border-radius:9px;min-width:0}
+.plan .presult{font-size:13px;line-height:1.6;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)}
+
+footer{margin-top:34px;text-align:center;font-size:11px;color:var(--ink-dim);line-height:1.8;padding:0 10px}
+footer b{color:var(--ink-dim)}
+.disclaimer{margin-top:8px;font-size:10px;opacity:.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">90 / 180 Rule</div>
+    <h1>Schengen <em>days</em> used</h1>
+  </header>
+
+  <div class="gauge">
+    <div class="bignum"><span id="used">0</span><span class="of"> / 90</span></div>
+    <div class="statusline"><span class="dot" id="dot"></span><span id="status">No trips entered</span></div>
+    <div class="bar"><span id="barUsed"></span><span id="barFree"></span></div>
+    <div class="meta">
+      <div><div class="lab">Remaining today</div><div class="val" id="remain">90</div></div>
+      <div><div class="lab">Window opens</div><div class="val" id="winStart">—</div></div>
+      <div><div class="lab">Next day freed</div><div class="val" id="nextFree">—</div></div>
+      <div><div class="lab">Could stay until</div><div class="val" id="maxStay">—</div></div>
+    </div>
+  </div>
+
+  <div class="refrow">
+    <label for="ref">As of</label>
+    <input type="date" id="ref">
+    <button id="todayBtn">Today</button>
+  </div>
+
+  <div class="section-h"><span>Trips</span></div>
+  <div id="trips"></div>
+  <button class="add" id="addBtn">+ Add a trip</button>
+
+  <div class="plan">
+    <div class="ph">Plan a future trip</div>
+    <div class="prow"><label>Entry</label><input type="date" id="pEntry"></div>
+    <div class="prow"><label>Exit</label><input type="date" id="pExit"></div>
+    <div class="presult" id="planResult">Pick dates to check whether the trip fits.</div>
+  </div>
+
+  <footer>
+    <b>Counts entry & exit days. Rolling 180-day look-back.</b>
+    <div class="disclaimer">Runs entirely on your phone. Nothing leaves the device. Not legal advice — verify against your stamps.</div>
+  </footer>
+</div>
+
+<script>
+const DAY = 86400000;
+const $ = id => document.getElementById(id);
+const iso = d => d.toISOString().slice(0,10);
+const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); };
+const fmt = d => d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+const addDays = (d,n) => new Date(d.getTime()+n*DAY);
+
+let trips = [];
+try { trips = JSON.parse(localStorage.getItem('schengen_trips')||'[]'); } catch(e){ trips=[]; }
+const save = () => localStorage.setItem('schengen_trips', JSON.stringify(trips));
+
+$('ref').value = iso(new Date());
+$('todayBtn').onclick = () => { $('ref').value = iso(new Date()); render(); };
+$('ref').onchange = render;
+$('addBtn').onclick = () => { trips.push({entry:'',exit:''}); save(); render(); focusLast(); };
+$('pEntry').onchange = planCheck;
+$('pExit').onchange = planCheck;
+
+function focusLast(){
+  const els = document.querySelectorAll('.trip input[type=date]');
+  if(els.length) els[els.length-2 < 0 ? 0 : els.length-2].focus();
+}
+
+// days of a trip that fall within [winStart, ref] inclusive
+function daysInWindow(trip, winStart, ref){
+  if(!trip.entry || !trip.exit) return 0;
+  const e = parse(trip.entry), x = parse(trip.exit);
+  if(x < e) return 0;
+  const lo = e < winStart ? winStart : e;
+  const hi = x > ref ? ref : x;
+  if(hi < lo) return 0;
+  return Math.round((hi-lo)/DAY) + 1;
+}
+function tripLength(trip){
+  if(!trip.entry || !trip.exit) return 0;
+  const e = parse(trip.entry), x = parse(trip.exit);
+  if(x < e) return 0;
+  return Math.round((x-e)/DAY)+1;
+}
+
+// usage on an arbitrary reference date, given a trip list
+function usageOn(ref, list){
+  const winStart = addDays(ref, -179);
+  let sum = 0;
+  for(const t of list) sum += daysInWindow(t, winStart, ref);
+  return sum;
+}
+
+function renderTrips(){
+  const box = $('trips');
+  box.innerHTML = '';
+  if(trips.length === 0){
+    box.innerHTML = '<div class="empty">No trips yet.<br>Add each Schengen entry/exit pair below.</div>';
+    return;
+  }
+  trips.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'trip';
+    div.innerHTML = `
+      <div class="dates">
+        <div class="field"><span>In</span><input type="date" value="${t.entry}" data-i="${i}" data-k="entry"></div>
+        <div class="field"><span>Out</span><input type="date" value="${t.exit}" data-i="${i}" data-k="exit"></div>
+      </div>
+      <div class="days">${tripLength(t)?tripLength(t)+'d':''}</div>
+      <button class="del" data-del="${i}">×</button>`;
+    box.appendChild(div);
+  });
+  box.querySelectorAll('input[type=date]').forEach(inp => {
+    inp.onchange = e => {
+      const i = +e.target.dataset.i, k = e.target.dataset.k;
+      trips[i][k] = e.target.value;
+      save(); render();
+    };
+  });
+  box.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = e => { trips.splice(+e.target.dataset.del,1); save(); render(); };
+  });
+}
+
+function render(){
+  renderTrips();
+  const ref = parse($('ref').value);
+  const winStart = addDays(ref, -179);
+  const used = usageOn(ref, trips);
+  const remain = Math.max(0, 90 - used);
+
+  $('used').textContent = used;
+  $('remain').textContent = remain;
+  $('remain').className = 'val ' + (remain===0?'bad':remain<=10?'warn':'ok');
+  $('winStart').textContent = fmt(winStart);
+
+  const usedPct = Math.min(100, used/90*100);
+  $('barUsed').style.width = usedPct + '%';
+  $('barUsed').style.background = used>90?'var(--bad)':used>=80?'var(--warn)':'var(--ok)';
+  $('barFree').style.width = (100-usedPct) + '%';
+  $('barFree').style.background = 'var(--surface-2)';
+
+  const dot = $('dot'), status = $('status');
+  if(trips.length===0){ status.textContent='No trips entered'; dot.style.background='var(--ink-dim)'; }
+  else if(used>90){ status.textContent=`Over limit by ${used-90} day${used-90>1?'s':''}`; dot.style.background='var(--bad)'; }
+  else if(remain===0){ status.textContent='At the limit — 0 days left'; dot.style.background='var(--bad)'; }
+  else if(remain<=10){ status.textContent=`Running low — ${remain} day${remain>1?'s':''} left`; dot.style.background='var(--warn)'; }
+  else { status.textContent=`Compliant — ${remain} days available`; dot.style.background='var(--ok)'; }
+
+  // Next day a day is "freed": the day after the earliest counted day rolls out of window.
+  // Find earliest counted calendar day still in window.
+  let earliest = null;
+  for(const t of trips){
+    if(!t.entry||!t.exit) continue;
+    const e = parse(t.entry), x = parse(t.exit);
+    if(x<e) continue;
+    const lo = e<winStart?winStart:e;
+    const hi = x>ref?ref:x;
+    if(hi<lo) continue;
+    if(earliest===null || lo<earliest) earliest = lo;
+  }
+  if(earliest && used>0){
+    const freedOn = addDays(earliest, 180); // day it leaves the 180-window
+    $('nextFree').textContent = fmt(freedOn);
+  } else $('nextFree').textContent = '—';
+
+  // Max stay: from ref forward, how many consecutive days could you remain starting today
+  // (assuming you enter on ref). Simulate day by day.
+  let maxStay = 0;
+  if(remain>0){
+    const hypo = trips.slice();
+    // simulate a trip starting at ref, extending day by day
+    let cur = ref, count = 0, ok = true;
+    // cap simulation at 400 days
+    for(let k=0;k<400;k++){
+      const testTrips = trips.concat([{entry:iso(ref), exit:iso(cur)}]);
+      if(usageOn(cur, testTrips) <= 90){ count = Math.round((cur-ref)/DAY)+1; cur = addDays(cur,1); }
+      else break;
+    }
+    maxStay = count;
+    if(count>0){
+      const until = addDays(ref, count-1);
+      $('maxStay').textContent = count + 'd · ' + fmt(until);
+    } else $('maxStay').textContent = '0 days';
+  } else $('maxStay').textContent = '0 days';
+
+  planCheck();
+}
+
+function planCheck(){
+  const pe = $('pEntry').value, px = $('pExit').value;
+  const out = $('planResult');
+  if(!pe || !px){ out.innerHTML = 'Pick dates to check whether the trip fits.'; return; }
+  const e = parse(pe), x = parse(px);
+  if(x<e){ out.innerHTML = '<span style="color:var(--bad)">Exit is before entry.</span>'; return; }
+  // worst case usage is checked on the exit date (and each day), find max usage over the trip span
+  const planned = {entry:pe, exit:px};
+  const all = trips.concat([planned]);
+  let maxUsed = 0, maxDay = null;
+  for(let d=e; d<=x; d=addDays(d,1)){
+    const u = usageOn(d, all);
+    if(u>maxUsed){ maxUsed=u; maxDay=d; }
+  }
+  const len = tripLength(planned);
+  if(maxUsed<=90){
+    out.innerHTML = `<span style="color:var(--ok)">Fits.</span> ${len}-day trip · peak usage ${maxUsed}/90 (on ${fmt(maxDay)}).`;
+  } else {
+    out.innerHTML = `<span style="color:var(--bad)">Exceeds by ${maxUsed-90} day${maxUsed-90>1?'s':''}.</span> Peak ${maxUsed}/90 on ${fmt(maxDay)}.`;
+  }
+}
+
+render();
+</script>
+</body>
+</html>
