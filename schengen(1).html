@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a1a17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schengen">
+<title>Schengen 90/180</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1a17;
+  --surface:#23231f;
+  --surface-2:#2c2c27;
+  --ink:#ece8e0;
+  --ink-dim:#9b968b;
+  --line:#3a3a33;
+  --ok:#7fa86b;
+  --warn:#d9a441;
+  --bad:#cf6b5a;
+  --accent:#c9a86a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--ink);font-family:'Spline Sans Mono',monospace}
+body{
+  min-height:100vh;
+  padding:max(env(safe-area-inset-top),20px) 20px calc(env(safe-area-inset-bottom) + 28px);
+  background-image:radial-gradient(circle at 50% 0%, #26261f 0%, var(--bg) 55%);
+}
+.wrap{max-width:520px;margin:0 auto}
+header{padding:14px 2px 26px}
+.kicker{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--ink-dim)}
+h1{font-family:'Fraunces',serif;font-weight:500;font-size:30px;line-height:1.05;margin-top:8px;letter-spacing:-.01em}
+h1 em{font-style:italic;color:var(--accent)}
+
+/* gauge */
+.gauge{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:30px 26px 26px;
+  position:relative;
+  overflow:hidden;
+}
+.gauge::after{content:"";position:absolute;inset:0;border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);pointer-events:none}
+.bignum{font-family:'Fraunces',serif;font-size:74px;font-weight:500;line-height:.9;letter-spacing:-.02em}
+.bignum .of{font-size:24px;color:var(--ink-dim);font-weight:400}
+.statusline{margin-top:14px;font-size:13px;letter-spacing:.02em;display:flex;align-items:center;gap:9px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.bar{margin-top:20px;height:9px;border-radius:99px;background:var(--surface-2);overflow:hidden;display:flex}
+.bar > span{height:100%;display:block;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.meta{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden}
+.meta div{background:var(--surface);padding:14px 16px}
+.meta .lab{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim)}
+.meta .val{font-size:15px;margin-top:5px}
+.meta .val.warn{color:var(--warn)}
+.meta .val.bad{color:var(--bad)}
+.meta .val.ok{color:var(--ok)}
+
+/* reference date */
+.refrow{display:flex;align-items:center;gap:12px;margin:22px 2px 8px}
+.refrow label{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);flex:none}
+.refrow input{
+  flex:1;background:var(--surface);border:1px solid var(--line);color:var(--ink);
+  font-family:inherit;font-size:14px;padding:11px 13px;border-radius:11px;
+}
+.refrow button{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12px;cursor:pointer;padding:6px}
+
+/* trips */
+.section-h{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-dim);margin:30px 2px 12px;display:flex;justify-content:space-between;align-items:center}
+.trip{
+  background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:14px 14px 14px 16px;margin-bottom:10px;
+  display:flex;align-items:center;gap:12px;
+}
+.trip .dates{flex:1;display:flex;flex-direction:column;gap:8px}
+.trip .field{display:flex;align-items:center;gap:10px}
+.trip .field span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);width:30px;flex:none}
+.trip input[type=date]{
+  flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+  font-family:inherit;font-size:13px;padding:9px 11px;border-radius:9px;min-width:0;
+}
+.trip .days{font-size:11px;color:var(--ink-dim);min-width:54px;text-align:right}
+.trip .del{
+  background:none;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;
+  width:34px;height:34px;border-radius:9px;flex:none;line-height:1;
+}
+.trip .del:active{background:var(--surface-2);color:var(--bad)}
+.add{
+  width:100%;background:var(--surface);border:1px dashed var(--line);color:var(--ink);
+  font-family:inherit;font-size:13px;letter-spacing:.04em;padding:15px;border-radius:14px;cursor:pointer;
+  transition:border-color .2s,color .2s;
+}
+.add:active{border-color:var(--accent);color:var(--accent)}
+.empty{color:var(--ink-dim);font-size:13px;text-align:center;padding:18px 0 6px;line-height:1.7}
+
+/* future planner */
+.plan{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px}
+.plan .ph{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:12px}
+.plan .prow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.plan .prow label{font-size:12px;color:var(--ink-dim);width:74px;flex:none}
+.plan input[type=date]{flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:13px;padding:9px 11px;border-radius:9px;min-width:0}
+.plan .presult{font-size:13px;line-height:1.6;margin-top:6px;padding-top:12px;border-top:1px solid var(--line)}
+
+/* calendar */
+.calhead{display:flex;align-items:center;justify-content:space-between;margin:30px 2px 14px}
+.calhead .section-h{margin:0}
+.yearnav{display:flex;align-items:center;gap:4px}
+.yearnav button{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:15px;width:34px;height:34px;border-radius:9px;cursor:pointer;line-height:1}
+.yearnav button:active{border-color:var(--accent);color:var(--accent)}
+.yearnav .yr{font-family:'Fraunces',serif;font-size:14px;min-width:118px;text-align:center;letter-spacing:.01em}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 12px}
+.months{display:flex;flex-direction:row;gap:6px;align-items:start}
+.mo{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+.mo .mname{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);text-align:center}
+.mo .strip{width:100%;display:grid;grid-template-rows:repeat(31,1fr);gap:1px;height:40vh;max-height:360px}
+.cell{border-radius:2px;background:transparent}
+.cell.day{background:var(--surface-2)}
+.cell.win{box-shadow:inset 0 0 0 1px var(--accent)}
+.cell.used{background:var(--ok)}
+.cell.used.inwin{background:var(--ok)}
+.cell.used.outwin{background:#3c4a32}
+.cell.future{background:var(--surface-2);opacity:.45}
+.cell.today{box-shadow:inset 0 0 0 1.5px var(--accent),0 0 0 1px var(--accent);z-index:1}
+.cell.dropsoon{background:var(--warn)}
+.callegend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:10px;color:var(--ink-dim)}
+.callegend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-1px}
+.callegend span{display:inline-flex;align-items:center}
+.dropnote{margin-top:12px;font-size:12px;line-height:1.6;color:var(--ink-dim)}
+.dropnote b{color:var(--warn);font-weight:500}
+
+/* availability forecast — vertical, one row per day */
+.fcwrap{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.fchead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.fchead .t{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim)}
+.fchead .sub{font-size:11px;color:var(--ink-dim)}
+.fcprobe{position:sticky;top:6px;z-index:3;font-size:12px;line-height:1.5;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin-bottom:10px}
+.fcprobe b{color:var(--ink)}
+.fcprobe .big{font-family:'Fraunces',serif;font-size:18px;color:var(--accent)}
+.fcscale{display:flex;font-size:8px;color:var(--ink-dim);margin:0 0 4px 50px;justify-content:space-between}
+.fcvchart{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-2)}
+.fcrow{display:flex;align-items:stretch;height:9px;cursor:pointer}
+.fcrow .axis{width:50px;flex:none;font-size:8px;color:var(--ink-dim);display:flex;align-items:center;padding-left:7px;white-space:nowrap;line-height:1}
+.fcrow .axis.ms{color:var(--ink);font-weight:500;letter-spacing:.04em}
+.fcrow .barcell{flex:1;position:relative;display:flex;align-items:center;background:linear-gradient(90deg,transparent calc(33.33% - 0.5px),var(--line) 33.33%,transparent calc(33.33% + 0.5px),transparent calc(66.66% - 0.5px),var(--line) 66.66%,transparent calc(66.66% + 0.5px))}
+.fcrow .bar{height:100%;background:var(--ok)}
+.fcrow .bar.mid{background:var(--accent)}
+.fcrow .bar.low{background:var(--warn)}
+.fcrow .bar.over{background:var(--bad);min-width:3px}
+.fcrow.past .bar{opacity:.34}
+.fcrow.ms{border-top:1px solid var(--line)}
+.fcrow.ftoday{background:rgba(201,168,106,.16)}
+.fcrow.ftoday .axis{color:var(--accent)}
+.fcrow.fcsel{outline:1.5px solid var(--ink);outline-offset:-1.5px;z-index:2}
+.fchint{font-size:10px;color:var(--ink-dim);margin-top:8px;line-height:1.5}
+
+/* window planner */
+.wplan{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px}
+.wplan .t{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:12px}
+.wrow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.wrow label{font-size:12px;color:var(--ink-dim);width:96px;flex:none}
+.wrow input{flex:1;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:13px;padding:9px 11px;border-radius:9px;min-width:0}
+.wresult{font-size:13px;line-height:1.7;margin-top:8px;padding-top:13px;border-top:1px solid var(--line)}
+.wresult .verdict{font-family:'Fraunces',serif;font-size:18px;display:block;margin-bottom:4px}
+.wresult .fit{color:var(--ok)}
+.wresult .miss{color:var(--bad)}
+.wresult b{color:var(--ink)}
+
+footer{margin-top:34px;text-align:center;font-size:11px;color:var(--ink-dim);line-height:1.8;padding:0 10px}
+footer b{color:var(--ink-dim)}
+.disclaimer{margin-top:8px;font-size:10px;opacity:.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">90 / 180 Rule</div>
+    <h1>Schengen <em>days</em> used</h1>
+  </header>
+
+  <div class="gauge">
+    <div class="bignum"><span id="used">0</span><span class="of"> / 90</span></div>
+    <div class="statusline"><span class="dot" id="dot"></span><span id="status">No trips entered</span></div>
+    <div class="bar"><span id="barUsed"></span><span id="barFree"></span></div>
+    <div class="meta">
+      <div><div class="lab">Remaining today</div><div class="val" id="remain">90</div></div>
+      <div><div class="lab">Window opens</div><div class="val" id="winStart">—</div></div>
+      <div><div class="lab">Next day freed</div><div class="val" id="nextFree">—</div></div>
+      <div><div class="lab">Could stay until</div><div class="val" id="maxStay">—</div></div>
+    </div>
+  </div>
+
+  <div class="refrow">
+    <label for="ref">As of</label>
+    <input type="date" id="ref">
+    <button id="todayBtn">Today</button>
+  </div>
+
+  <div class="section-h"><span>Trips</span></div>
+  <div id="trips"></div>
+  <button class="add" id="addBtn">+ Add a trip</button>
+
+  <div class="plan">
+    <div class="ph">Plan a future trip</div>
+    <div class="prow"><label>Entry</label><input type="date" id="pEntry"></div>
+    <div class="prow"><label>Exit</label><input type="date" id="pExit"></div>
+    <div class="presult" id="planResult">Pick dates to check whether the trip fits.</div>
+  </div>
+
+  <div class="calhead">
+    <div class="section-h">Year view</div>
+    <div class="yearnav">
+      <button id="yrPrev">‹</button>
+      <div class="yr" id="yrLabel">2026</div>
+      <button id="yrNext">›</button>
+    </div>
+  </div>
+  <div class="cal">
+    <div class="months" id="months"></div>
+    <div class="callegend">
+      <span><i style="background:var(--ok)"></i>In window</span>
+      <span><i style="background:#3c4a32"></i>Used, rolled out</span>
+      <span><i style="background:var(--warn)"></i>Drops within 14d</span>
+      <span><i style="box-shadow:inset 0 0 0 1px var(--accent);background:var(--surface-2)"></i>180-day window</span>
+    </div>
+    <div class="dropnote" id="dropnote"></div>
+  </div>
+
+  <div class="fcwrap">
+    <div class="fchead">
+      <div class="t">Availability forecast</div>
+      <div class="sub">tap a day</div>
+    </div>
+    <div class="fcprobe" id="fcprobe">Tap any day below to see how many of your 90 are free then, and the longest unbroken stay you could start.</div>
+    <div class="fcscale"><span>0</span><span>30</span><span>60</span><span>90 free</span></div>
+    <div class="fcvchart" id="fcvchart"></div>
+    <div class="fchint">Bar length = days free that day (0–90). Time runs top→bottom across the same window as the calendar. Dimmed = past · highlighted row = today.</div>
+  </div>
+
+  <div class="wplan">
+    <div class="t">Will my trip fit?</div>
+    <div class="wrow"><label>Window start</label><input type="date" id="wStart"></div>
+    <div class="wrow"><label>Window end</label><input type="date" id="wEnd"></div>
+    <div class="wrow"><label>Days needed</label><input type="number" id="wNeed" min="1" max="90" placeholder="e.g. 63"></div>
+    <div class="wresult" id="wResult">Enter a window and how many days you need inside it. I'll tell you if it fits — and if not, how many days you'd need to free up first.</div>
+  </div>
+
+  <footer>
+    <b>Counts entry & exit days. Rolling 180-day look-back.</b>
+    <div class="disclaimer">Runs entirely on your phone. Nothing leaves the device. Not legal advice — verify against your stamps.</div>
+  </footer>
+</div>
+
+<script>
+const DAY = 86400000;
+const $ = id => document.getElementById(id);
+const iso = d => d.toISOString().slice(0,10);
+const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); };
+const fmt = d => d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
+const addDays = (d,n) => new Date(d.getTime()+n*DAY);
+
+let trips = [];
+try { trips = JSON.parse(localStorage.getItem('schengen_trips')||'[]'); } catch(e){ trips=[]; }
+const save = () => localStorage.setItem('schengen_trips', JSON.stringify(trips));
+
+$('ref').value = iso(new Date());
+$('todayBtn').onclick = () => { $('ref').value = iso(new Date()); render(); };
+$('ref').onchange = render;
+$('addBtn').onclick = () => { trips.push({entry:'',exit:''}); save(); render(); focusLast(); };
+$('pEntry').onchange = planCheck;
+$('pExit').onchange = planCheck;
+
+function focusLast(){
+  const els = document.querySelectorAll('.trip input[type=date]');
+  if(els.length) els[els.length-2 < 0 ? 0 : els.length-2].focus();
+}
+
+// days of a trip that fall within [winStart, ref] inclusive
+function daysInWindow(trip, winStart, ref){
+  if(!trip.entry || !trip.exit) return 0;
+  const e = parse(trip.entry), x = parse(trip.exit);
+  if(x < e) return 0;
+  const lo = e < winStart ? winStart : e;
+  const hi = x > ref ? ref : x;
+  if(hi < lo) return 0;
+  return Math.round((hi-lo)/DAY) + 1;
+}
+function tripLength(trip){
+  if(!trip.entry || !trip.exit) return 0;
+  const e = parse(trip.entry), x = parse(trip.exit);
+  if(x < e) return 0;
+  return Math.round((x-e)/DAY)+1;
+}
+
+// usage on an arbitrary reference date, given a trip list
+function usageOn(ref, list){
+  const winStart = addDays(ref, -179);
+  let sum = 0;
+  for(const t of list) sum += daysInWindow(t, winStart, ref);
+  return sum;
+}
+
+function renderTrips(){
+  const box = $('trips');
+  box.innerHTML = '';
+  if(trips.length === 0){
+    box.innerHTML = '<div class="empty">No trips yet.<br>Add each Schengen entry/exit pair below.</div>';
+    return;
+  }
+  trips.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'trip';
+    div.innerHTML = `
+      <div class="dates">
+        <div class="field"><span>In</span><input type="date" value="${t.entry}" data-i="${i}" data-k="entry"></div>
+        <div class="field"><span>Out</span><input type="date" value="${t.exit}" data-i="${i}" data-k="exit"></div>
+      </div>
+      <div class="days">${tripLength(t)?tripLength(t)+'d':''}</div>
+      <button class="del" data-del="${i}">×</button>`;
+    box.appendChild(div);
+  });
+  box.querySelectorAll('input[type=date]').forEach(inp => {
+    inp.onchange = e => {
+      const i = +e.target.dataset.i, k = e.target.dataset.k;
+      trips[i][k] = e.target.value;
+      save(); render();
+    };
+  });
+  box.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = e => { trips.splice(+e.target.dataset.del,1); save(); render(); };
+  });
+}
+
+// anchor = first of the 12 months shown. Step by one month. Default: start 2 months back so "now" sits near the top.
+let anchor = (() => { const n=new Date(); return new Date(Date.UTC(n.getFullYear(), n.getMonth()-2, 1)); })();
+const shiftAnchor = n => { anchor = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth()+n, 1)); render(); };
+$('yrPrev').onclick = () => shiftAnchor(-1);
+$('yrNext').onclick = () => shiftAnchor(1);
+
+// build a Set of ISO date strings the user was in Schengen
+function usedDaySet(){
+  const s = new Set();
+  for(const t of trips){
+    if(!t.entry||!t.exit) continue;
+    let e = parse(t.entry), x = parse(t.exit);
+    if(x<e) continue;
+    for(let d=e; d<=x; d=addDays(d,1)) s.add(iso(d));
+  }
+  return s;
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function renderCalendar(ref){
+  const winStart = addDays(ref, -179);
+  const used = usedDaySet();
+  const refIso = iso(ref);
+  const box = $('months');
+  box.innerHTML = '';
+
+  const aY = anchor.getUTCFullYear(), aM = anchor.getUTCMonth();
+  // range label, e.g. "Nov '25 – Oct '26"
+  const lastY = aY + Math.floor((aM+11)/12), lastM = (aM+11)%12;
+  const yy = y => ("'"+String(y).slice(2));
+  $('yrLabel').textContent = `${MONTHS[aM]} ${yy(aY)} – ${MONTHS[lastM]} ${yy(lastY)}`;
+
+  for(let i=0; i<12; i++){
+    const Y = aY + Math.floor((aM+i)/12);
+    const m = (aM+i)%12;
+    const mo = document.createElement('div');
+    mo.className = 'mo';
+    const daysInMonth = new Date(Date.UTC(Y, m+1, 0)).getUTCDate();
+    let cells = '';
+    for(let d=1; d<=daysInMonth; d++){
+      const date = new Date(Date.UTC(Y, m, d));
+      const dIso = iso(date);
+      let cls = 'cell day';
+      const inWin = date>=winStart && date<=ref;
+      const isUsed = used.has(dIso);
+      if(date>ref) cls = 'cell future';
+      if(isUsed){
+        cls = 'cell used ' + (inWin ? 'inwin' : 'outwin');
+        if(inWin){
+          const dropsOn = addDays(date, 180);
+          const daysUntilDrop = Math.round((dropsOn - ref)/DAY);
+          if(daysUntilDrop>=0 && daysUntilDrop<=14) cls = 'cell dropsoon';
+        }
+      } else if(inWin){
+        cls += ' win';
+      }
+      if(dIso===refIso) cls += ' today';
+      cells += `<div class="${cls}"></div>`;
+    }
+    const mlabel = (m===0) ? `${MONTHS[m]} ${yy(Y)}` : MONTHS[m];
+    mo.innerHTML = `<div class="mname">${mlabel}</div><div class="strip">${cells}</div>`;
+    box.appendChild(mo);
+  }
+
+  // drop note: next big block leaving the window
+  const note = $('dropnote');
+  // find used days currently in window, group by how soon they drop
+  let soonest = null, soonestCount = 0;
+  const inWinUsed = [];
+  for(const ds of used){
+    const d = parse(ds);
+    if(d>=winStart && d<=ref) inWinUsed.push(d);
+  }
+  if(inWinUsed.length){
+    inWinUsed.sort((a,b)=>a-b);
+    const earliest = inWinUsed[0];
+    const dropsOn = addDays(earliest, 180);
+    const inDays = Math.round((dropsOn-ref)/DAY);
+    // count consecutive days dropping in the next 14d window for a "block" feel
+    let within14 = inWinUsed.filter(d => {
+      const dd = Math.round((addDays(d,180)-ref)/DAY);
+      return dd>=0 && dd<=14;
+    }).length;
+    if(within14>0){
+      note.innerHTML = `<b>${within14} used day${within14>1?'s':''}</b> roll out of the window within 14 days — freeing that many days back. First frees on ${fmt(addDays(earliest,180))}.`;
+    } else {
+      note.innerHTML = `Earliest used day frees on ${fmt(dropsOn)} (in ${inDays} day${inDays!==1?'s':''}).`;
+    }
+  } else {
+    note.innerHTML = 'No used days in the current window.';
+  }
+}
+
+function render(){
+  renderTrips();
+  const ref = parse($('ref').value);
+  const winStart = addDays(ref, -179);
+  const used = usageOn(ref, trips);
+  const remain = Math.max(0, 90 - used);
+
+  $('used').textContent = used;
+  $('remain').textContent = remain;
+  $('remain').className = 'val ' + (remain===0?'bad':remain<=10?'warn':'ok');
+  $('winStart').textContent = fmt(winStart);
+
+  const usedPct = Math.min(100, used/90*100);
+  $('barUsed').style.width = usedPct + '%';
+  $('barUsed').style.background = used>90?'var(--bad)':used>=80?'var(--warn)':'var(--ok)';
+  $('barFree').style.width = (100-usedPct) + '%';
+  $('barFree').style.background = 'var(--surface-2)';
+
+  const dot = $('dot'), status = $('status');
+  if(trips.length===0){ status.textContent='No trips entered'; dot.style.background='var(--ink-dim)'; }
+  else if(used>90){ status.textContent=`Over limit by ${used-90} day${used-90>1?'s':''}`; dot.style.background='var(--bad)'; }
+  else if(remain===0){ status.textContent='At the limit — 0 days left'; dot.style.background='var(--bad)'; }
+  else if(remain<=10){ status.textContent=`Running low — ${remain} day${remain>1?'s':''} left`; dot.style.background='var(--warn)'; }
+  else { status.textContent=`Compliant — ${remain} days available`; dot.style.background='var(--ok)'; }
+
+  // Next day a day is "freed": the day after the earliest counted day rolls out of window.
+  // Find earliest counted calendar day still in window.
+  let earliest = null;
+  for(const t of trips){
+    if(!t.entry||!t.exit) continue;
+    const e = parse(t.entry), x = parse(t.exit);
+    if(x<e) continue;
+    const lo = e<winStart?winStart:e;
+    const hi = x>ref?ref:x;
+    if(hi<lo) continue;
+    if(earliest===null || lo<earliest) earliest = lo;
+  }
+  if(earliest && used>0){
+    const freedOn = addDays(earliest, 180); // day it leaves the 180-window
+    $('nextFree').textContent = fmt(freedOn);
+  } else $('nextFree').textContent = '—';
+
+  // Max stay: from ref forward, how many consecutive days could you remain starting today
+  // (assuming you enter on ref). Simulate day by day.
+  let maxStay = 0;
+  if(remain>0){
+    const hypo = trips.slice();
+    // simulate a trip starting at ref, extending day by day
+    let cur = ref, count = 0, ok = true;
+    // cap simulation at 400 days
+    for(let k=0;k<400;k++){
+      const testTrips = trips.concat([{entry:iso(ref), exit:iso(cur)}]);
+      if(usageOn(cur, testTrips) <= 90){ count = Math.round((cur-ref)/DAY)+1; cur = addDays(cur,1); }
+      else break;
+    }
+    maxStay = count;
+    if(count>0){
+      const until = addDays(ref, count-1);
+      $('maxStay').textContent = count + 'd · ' + fmt(until);
+    } else $('maxStay').textContent = '0 days';
+  } else $('maxStay').textContent = '0 days';
+
+  planCheck();
+  renderCalendar(ref);
+  renderForecast(ref);
+  windowPlan();
+}
+
+function planCheck(){
+  const pe = $('pEntry').value, px = $('pExit').value;
+  const out = $('planResult');
+  if(!pe || !px){ out.innerHTML = 'Pick dates to check whether the trip fits.'; return; }
+  const e = parse(pe), x = parse(px);
+  if(x<e){ out.innerHTML = '<span style="color:var(--bad)">Exit is before entry.</span>'; return; }
+  // worst case usage is checked on the exit date (and each day), find max usage over the trip span
+  const planned = {entry:pe, exit:px};
+  const all = trips.concat([planned]);
+  let maxUsed = 0, maxDay = null;
+  for(let d=e; d<=x; d=addDays(d,1)){
+    const u = usageOn(d, all);
+    if(u>maxUsed){ maxUsed=u; maxDay=d; }
+  }
+  const len = tripLength(planned);
+  if(maxUsed<=90){
+    out.innerHTML = `<span style="color:var(--ok)">Fits.</span> ${len}-day trip · peak usage ${maxUsed}/90 (on ${fmt(maxDay)}).`;
+  } else {
+    out.innerHTML = `<span style="color:var(--bad)">Exceeds by ${maxUsed-90} day${maxUsed-90>1?'s':''}.</span> Peak ${maxUsed}/90 on ${fmt(maxDay)}.`;
+  }
+}
+
+// longest unbroken stay you could start on day X, given existing trips (capped 400d)
+function maxStayFrom(X){
+  let count = 0, cur = new Date(X);
+  for(let k=0;k<400;k++){
+    const test = trips.concat([{entry:iso(X), exit:iso(cur)}]);
+    if(usageOn(cur, test) <= 90){ count = Math.round((cur-X)/DAY)+1; cur = addDays(cur,1); }
+    else break;
+  }
+  return count;
+}
+
+// availability forecast — vertical, one tappable row per day, across the calendar's window
+function renderForecast(ref){
+  const chart = $('fcvchart');
+  chart.innerHTML = '';
+  const start = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth()+12, 0));
+  const refIso = iso(ref);
+  const frag = document.createDocumentFragment();
+  for(let d=new Date(start); d<=end; d=addDays(d,1)){
+    const u = usageOn(d, trips);
+    const avail = Math.max(0, 90 - u);
+    const dom = d.getUTCDate(), mon = d.getUTCMonth();
+    const lvl = avail>30 ? '' : avail>10 ? 'mid' : avail>0 ? 'low' : 'over';
+    const isMonthStart = dom===1;
+    const row = document.createElement('div');
+    row.className = 'fcrow'
+      + (d<ref ? ' past' : '')
+      + (iso(d)===refIso ? ' ftoday' : '')
+      + (isMonthStart ? ' ms' : '');
+    row.dataset.iso = iso(d);
+    let axisTxt = '';
+    if(isMonthStart) axisTxt = MONTHS[mon] + " '" + String(d.getUTCFullYear()).slice(2);
+    else if(dom % 7 === 1) axisTxt = dom;            // light weekly ticks
+    row.innerHTML = `<div class="axis${isMonthStart?' ms':''}">${axisTxt}</div>`
+      + `<div class="barcell"><div class="bar ${lvl}" style="width:${avail/90*100}%"></div></div>`;
+    frag.appendChild(row);
+  }
+  chart.appendChild(frag);
+}
+
+function probeDay(dIso){
+  const d = parse(dIso);
+  const u = usageOn(d, trips);
+  const avail = Math.max(0, 90 - u);
+  const stay = maxStayFrom(d);
+  const out = $('fcprobe');
+  out.innerHTML = `<b>${fmt(d)}</b> — <span class="big">${avail}</span> day${avail!==1?'s':''} free that day. `
+    + `Longest unbroken stay starting then: <b>${stay}</b> day${stay!==1?'s':''}`
+    + (stay>0 ? ` (through ${fmt(addDays(d, stay-1))}).` : '.');
+}
+
+// "Will my trip fit?" — N days inside [S,E] given current commitments
+function windowPlan(){
+  const sV=$('wStart').value, eV=$('wEnd').value, nV=parseInt($('wNeed').value,10);
+  const out = $('wResult');
+  if(!sV || !eV || !nV){ out.innerHTML = "Enter a window and how many days you need inside it. I'll tell you if it fits — and if not, how many days you'd need to free up first."; return; }
+  const S=parse(sV), E=parse(eV);
+  if(E<S){ out.innerHTML='<span class="verdict miss">Window end is before start.</span>'; return; }
+  const windowLen = Math.round((E-S)/DAY)+1;
+  if(nV>windowLen){ out.innerHTML=`<span class="verdict miss">Window too short.</span> It spans ${windowLen} days but you need ${nV}.`; return; }
+  if(nV>90){ out.innerHTML='<span class="verdict miss">Over 90.</span> The rule caps any 180-day span at 90 days.'; return; }
+
+  function maxContig(from){
+    let count=0, cur=new Date(from);
+    while(cur<=E){
+      const test = trips.concat([{entry:iso(from), exit:iso(cur)}]);
+      if(usageOn(cur, test) <= 90){ count = Math.round((cur-from)/DAY)+1; cur = addDays(cur,1); }
+      else break;
+    }
+    return count;
+  }
+
+  let best=0, bestStart=null, earliestFit=null;
+  // earliestFit: first start with room for the full N before E
+  for(let day=new Date(S); addDays(day,nV-1)<=E; day=addDays(day,1)){
+    if(maxContig(day)>=nV){ earliestFit=new Date(day); break; }
+  }
+  // best: longest contiguous stay achievable anywhere in the window (a later start can ride the roll-off edge)
+  for(let day=new Date(S); day<=E; day=addDays(day,1)){
+    const c = maxContig(day);
+    if(c>best){ best=c; bestStart=new Date(day); }
+  }
+
+  if(earliestFit){
+    const latestStart = addDays(E, -(nV-1));
+    const flexNote = (iso(earliestFit)===iso(S))
+      ? `You can start as early as the window opens.`
+      : `Earliest start that works: <b>${fmt(earliestFit)}</b> (waiting lets prior days roll off).`;
+    out.innerHTML = `<span class="verdict fit">Fits ✓</span>`
+      + `A ${nV}-day stay fits inside this window. ${flexNote} `
+      + `Latest you could start and still finish by the end: <b>${fmt(latestStart)}</b>.`;
+  } else {
+    const deficit = nV - best;
+    let shadowDays = 0;
+    const shadowFloor = addDays(S, -179);
+    for(const t of trips){
+      if(!t.entry||!t.exit) continue;
+      let e=parse(t.entry), x=parse(t.exit);
+      if(x<e) continue;
+      for(let dd=e; dd<=x; dd=addDays(dd,1)){
+        if(dd>=shadowFloor && dd<S){ shadowDays++; }
+      }
+    }
+    out.innerHTML = `<span class="verdict miss">Short by ${deficit} day${deficit!==1?'s':''}</span>`
+      + `The most you can fit in this window is <b>${best}</b> of the ${nV} you need. `
+      + (shadowDays>0
+          ? `That's because <b>${shadowDays}</b> day${shadowDays!==1?'s':''} you've already spent in the 180 days before the window are still casting shadows into it. `
+            + `To open up the room, spend <b>${deficit}</b> fewer day${deficit!==1?'s':''} in Schengen before the window opens — i.e. leave that many days sooner.`
+          : `Even with no prior shadows, ${nV} days won't fit before the window ends — shift the end date later or split the stay.`);
+  }
+}
+
+$('wStart').onchange = windowPlan;
+$('wEnd').onchange = windowPlan;
+$('wNeed').oninput = windowPlan;
+$('fcvchart').addEventListener('click', e=>{
+  const row = e.target.closest('.fcrow');
+  if(!row) return;
+  document.querySelectorAll('.fcrow.fcsel').forEach(r=>r.classList.remove('fcsel'));
+  row.classList.add('fcsel');
+  probeDay(row.dataset.iso);
+});
+
+render();
+</script>
+</body>
+</html>
